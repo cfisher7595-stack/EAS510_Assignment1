@@ -2,8 +2,8 @@
 EAS 510 - Digital Forensics Detective
 """
 import os
-
 from rules import rule1_metadata
+
 
 class SimpleDetective:
     """An expert system that matches modified images to originals."""
@@ -16,7 +16,7 @@ class SimpleDetective:
         print(f"Loading targets from: {folder}")
 
         for filename in os.listdir(folder):
-            if filename.endswith(('.jpg', '.jpeg', '.png')):
+            if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
                 filepath = os.path.join(folder, filename)
                 file_size = os.path.getsize(filepath)
 
@@ -34,8 +34,12 @@ class SimpleDetective:
 
         for target_name, target_info in self.targets.items():
             score, fired, evidence = rule1_metadata(target_info, input_image_path)
-            results.append({'target': target_name, 'score': score,
-                            'fired': fired, 'evidence': evidence})
+            results.append({
+                'target': target_name,
+                'score': score,
+                'fired': fired,
+                'evidence': evidence
+            })
 
         results.sort(key=lambda x: x['score'], reverse=True)
         best = results[0]
@@ -49,6 +53,7 @@ class SimpleDetective:
         else:
             print(f"Final: {best['score']}/30 -> REJECTED")
             return {'best_match': None, 'confidence': best['score']}
+
 
 if __name__ == "__main__":
     print("=" * 50)
@@ -70,6 +75,8 @@ if __name__ == "__main__":
     for img in test_images:
         if os.path.exists(img):
             detective.find_best_match(img)
+        else:
+            print(f"Missing file: {img}")
 
     print("\n" + "=" * 50)
     print("PROTOTYPE COMPLETE!")
