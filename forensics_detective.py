@@ -2,8 +2,10 @@
 EAS 510 - Digital Forensics Detective
 """
 import os
-from rules import rule1_metadata
-
+from rules import rule1_metadata, rule2_histogram, rule3_template
+def scale_points(raw_score, raw_max, weight):
+    """Rescale a rule score from [0..raw_max] to [0..weight]."""
+    return int(round((raw_score / raw_max) * weight)) if raw_max > 0 else 0
 
 class SimpleDetective:
     """An expert system that matches modified images to originals."""
@@ -33,26 +35,46 @@ class SimpleDetective:
         results = []
 
         for target_name, target_info in self.targets.items():
-            score, fired, evidence = rule1_metadata(target_info, input_image_path)
+            # Rule 1
+            r1, f1, e1 = rule1_metadata(target_info, input_image_path)
+
+            # Rule 2
+            r2, f2, e2 = rule2_histogram(target_info, input_image_path)
+
+            # Rule 3
+            r3, f3, e3 = rule3_template(target_info, input_image_path)
+
+            total = r1 + r2 + r3  # 30 + 30 + 40 = 100 max
+
             results.append({
-                'target': target_name,
-                'score': score,
-                'fired': fired,
-                'evidence': evidence
+                "target": target_name,
+                "total": total,
+                "r1": (r1, f1, e1),
+                "r2": (r2, f2, e2),
+                "r3": (r3, f3, e3),
             })
 
-        results.sort(key=lambda x: x['score'], reverse=True)
+        results.sort(key=lambda x: x["total"], reverse=True)
         best = results[0]
 
-        status = "FIRED" if best['fired'] else "NO MATCH"
-        print(f"  Rule 1 (Metadata): {status} - {best['evidence']} -> {best['score']}/30")
+        r1, f1, e1 = best["r1"]
+        r2, f2, e2 = best["r2"]
+        r3, f3, e3 = best["r3"]
 
-        if best['score'] >= 10:
-            print(f"Final: {best['score']}/30 -> MATCH to {best['target']}")
-            return {'best_match': best['target'], 'confidence': best['score']}
+        # Print format matching the assignment example
+        print(f"Rule 1 (Metadata): {'FIRED' if f1 else 'NO MATCH'} - {e1} -> {r1}/30 points")
+        print(f"Rule 2 (Histogram): {'FIRED' if f2 else 'NO MATCH'} - {e2} -> {r2}/30 points")
+        print(f"Rule 3 (Template): {'FIRED' if f3 else 'NO MATCH'} - {e3} -> {r3}/40 points")
+
+        final = best["total"]
+
+        # Starter threshold (tune later)
+        if final >= 55:
+            print(f"Final Score: {final}/100 -> MATCH to {best['target']}")
+            return {"best_match": best["target"], "confidence": final}
         else:
-            print(f"Final: {best['score']}/30 -> REJECTED")
-            return {'best_match': None, 'confidence': best['score']}
+            print(f"Final Score: {final}/100 -> REJECTED")
+            return {"best_match": None, "confidence": final}
 
 
 if __name__ == "__main__":
